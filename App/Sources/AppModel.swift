@@ -82,6 +82,14 @@ final class AppModel: ObservableObject {
                 chat.streaming = session.running
             }
             loadingChat = false
+            // What the bridge still holds for this conversation: finished turns are already in the stored history.
+            let sentMeanwhile = chat.streaming && !session.running
+            let backlog = try await client.events(sessionID: session.id, after: chat.lastSeq, wait: 0)
+            guard mine() else { return }
+            chat.resume(from: backlog)
+            if sentMeanwhile, chat.streaming, backlog.contains(where: { $0.type == "message.complete" }) {
+                await catchUp(session, client)      // the message sent while loading was already answered
+            }
             let options = (try? await client.modelOptions(sessionID: session.id)) ?? ModelChoices()
             guard mine() else { return }
             choices = options

@@ -32,10 +32,20 @@ struct ChatView: View {
                     if let error = model.chatError {
                         Text(error).font(.caption2).foregroundStyle(.orange)
                     }
-                    TextField("Message", text: $input)
-                        .onSubmit(sendInput)
-                        .submitLabel(.send)
+                    #if DEBUG
+                    if DemoScript.active {
+                        // Demo videos: a tap on the field sends the next scripted line through the normal send path,
+                        // so a take needs neither dictation nor the system keyboard.
+                        Button { if let text = DemoScript.next() { Task { await model.send(text, in: session) } } } label: {
+                            Text("Message").foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         .accessibilityIdentifier("message-field")
+                    } else {
+                        messageField
+                    }
+                    #else
+                    messageField
+                    #endif
                     Color.clear.frame(height: 1).id("bottom")
                 }
                 .padding(.horizontal, 2)
@@ -68,6 +78,13 @@ struct ChatView: View {
         #endif
     }
 
+    private var messageField: some View {
+        TextField("Message", text: $input)
+            .onSubmit(sendInput)
+            .submitLabel(.send)
+            .accessibilityIdentifier("message-field")
+    }
+
     private func sendInput() {
         let text = input
         input = ""
@@ -98,3 +115,13 @@ private struct Bubble: View {
             ?? AttributedString(message.text)
     }
 }
+
+#if DEBUG
+/// HERMES_DEMO_SCRIPT="first line|second line": the lines a demo take sends, one per tap on the message field.
+@MainActor enum DemoScript {
+    private static var lines: [String] = (ProcessInfo.processInfo.environment["HERMES_DEMO_SCRIPT"] ?? "")
+        .split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    static let active = !lines.isEmpty
+    static func next() -> String? { lines.isEmpty ? nil : lines.removeFirst() }
+}
+#endif

@@ -19,6 +19,16 @@ public struct ChatState: Equatable, Sendable {
         streaming = true; thinking = true; draft = ""; segments = [:]; status = nil
     }
 
+    /// Events the bridge still holds when a conversation is opened. The stored history already has every finished
+    /// turn, so replaying them would show a reply twice: only what follows the last `message.complete` is applied,
+    /// the rest just moves the cursor.
+    public mutating func resume(from backlog: [BridgeEvent]) {
+        let done = backlog.lastIndex { $0.type == "message.complete" }
+        for (i, e) in backlog.enumerated() {
+            if let done, i <= done { lastSeq = max(lastSeq, e.seq) } else { apply(e) }
+        }
+    }
+
     public mutating func apply(_ e: BridgeEvent) {
         lastSeq = max(lastSeq, e.seq)
         switch e.type {

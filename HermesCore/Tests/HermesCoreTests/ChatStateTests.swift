@@ -23,6 +23,24 @@ final class ChatStateTests: XCTestCase {
         XCTAssertEqual(s.draft, ""); XCTAssertNil(s.status); XCTAssertEqual(s.lastSeq, 5)
     }
 
+    func testReopeningAConversationDoesNotShowAFinishedReplyTwice() {
+        // The stored history has the turn; the bridge still holds its events from a moment ago.
+        var s = ChatState(messages: [ChatMessage(role: .user, text: "Hi"), ChatMessage(role: .assistant, text: "Hello")])
+        s.resume(from: [BridgeEvent(seq: 1, type: "message.start"), delta(2, "Hello", offset: 0),
+                        BridgeEvent(seq: 3, type: "message.complete", payload: .object(["text": .null, "outcome": "completed"]))])
+        XCTAssertEqual(s.messages.map(\.text), ["Hi", "Hello"])
+        XCTAssertFalse(s.streaming); XCTAssertEqual(s.draft, ""); XCTAssertEqual(s.lastSeq, 3)
+    }
+
+    func testReopeningDuringATurnShowsOnlyTheRunningTurn() {
+        var s = ChatState(messages: [ChatMessage(role: .user, text: "Hi"), ChatMessage(role: .assistant, text: "Hello"), ChatMessage(role: .user, text: "More")])
+        s.resume(from: [BridgeEvent(seq: 1, type: "message.start"), delta(2, "Hello", offset: 0),
+                        BridgeEvent(seq: 3, type: "message.complete", payload: .object(["text": .null, "outcome": "completed"])),
+                        BridgeEvent(seq: 4, type: "message.start"), delta(5, "Sure", offset: 0)])
+        XCTAssertEqual(s.messages.count, 3)
+        XCTAssertTrue(s.streaming); XCTAssertEqual(s.draft, "Sure"); XCTAssertEqual(s.lastSeq, 5)
+    }
+
     func testADeltaDeliveredTwiceIsNotWrittenTwice() {
         var s = ChatState()
         s.apply(delta(1, "Sal", offset: 0))
