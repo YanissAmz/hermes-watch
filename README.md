@@ -106,6 +106,8 @@ model for one conversation, submits, follows events to the end of the reply, and
 - No notification when a reply finishes while the app is closed.
 - Tool approvals are not handled: answer them from another client.
 - A model that asks for a confirmation has to be picked from the desktop or phone app.
+- The picker lists what your Hermes config offers. When the picked provider refuses a request (a model id it does not
+  know, a free model at its rate limit), Hermes answers with its fallback model and says so at the end of the reply.
 
 ## Licence
 
