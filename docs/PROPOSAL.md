@@ -44,9 +44,9 @@ GET  /events  ?session_id=...&after=<seq>&wait=<seconds>         -> {"events": [
 
 The app runs on a real Apple Watch Series 11 (watchOS 27.0.1); its calls reach the dashboard through the paired
 iPhone. Done on the watch itself: conversation list, new conversation, a dictated message, and the reply shown on the
-screen (one turn: 63 events in 5 polls, about 4 seconds from send to the end of the reply), and the model switch for
-one conversation (a model picked in the list answered the next two turns). Interrupt is exercised in the watch
-simulator and by the bridge's end-to-end test, not yet on the watch.
+screen (one turn: 63 events in 5 polls, about 4 seconds from send to the end of the reply), the model switch for one
+conversation (a model picked in the list answered the next two turns), Stop (the turn ended as interrupted, under a
+second after the tap reached the bridge), and an approval answered from the wrist (the command ran once allowed).
 
 One run of that test, for scale: a one-word reply produced 18 events, delivered in 2 polls; a long turn that was
 interrupted ended as cancelled about 2 seconds after it was submitted. The bridge waits 250 ms before answering a poll
@@ -70,6 +70,8 @@ What it gives: a watch app, or any HTTP-only client, talks to a stock Hermes wit
   refuses the rest (delete, config changes), which felt right for a device that is easy to lose.
 - Server-sent events would stream better than a long poll and are plain HTTP, so watchOS allows them in principle.
   I have not tried them on a watch. The long poll was the safe choice: it is one ordinary request at a time.
-- Approvals and other server-initiated requests need a place in this path. The bridge does not handle them yet.
+- Approvals and clarifications already fit this path: they arrive as events (`approval.request`, `clarify.request`) and
+  are answered with a method (`approval.respond`, `clarify.respond`), so the long poll carries them unchanged. The
+  bridge only narrows the choices a watch may give: once, for this conversation, or deny, never "always".
 
 I can turn the bridge into a pull request against the dashboard if this direction suits you.

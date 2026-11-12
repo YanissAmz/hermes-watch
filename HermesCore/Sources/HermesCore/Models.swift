@@ -62,3 +62,40 @@ public struct BridgeEvent: Equatable, Sendable {
         self.seq = seq; self.type = type; self.payload = payload
     }
 }
+
+/// A question the dashboard put to this conversation while a turn runs (events `approval.request`, `clarify.request`).
+/// The turn waits until someone answers it here or on another device, or until it times out.
+public struct OpenRequest: Equatable, Sendable, Identifiable {
+    public enum Kind: String, Sendable { case approval, clarify }
+    /// The dashboard's `prompt_id`.
+    public let id: String
+    public let kind: Kind
+    /// The turn the question belongs to; the answer must name it.
+    public let generation: Int
+    public let command: String
+    public let description: String
+    public let question: String
+    public let choices: [String]
+    public let multiSelect: Bool
+
+    /// Approval choices a watch may give: "always" (a permanent allow-list entry) is left to a bigger screen.
+    public static let watchChoices = ["once", "session", "deny"]
+
+    public init(id: String, kind: Kind, generation: Int, command: String = "", description: String = "", question: String = "",
+                choices: [String] = [], multiSelect: Bool = false) {
+        self.id = id; self.kind = kind; self.generation = generation; self.command = command; self.description = description
+        self.question = question; self.choices = choices; self.multiSelect = multiSelect
+    }
+
+    init?(_ j: JSON) {
+        guard let id = j["prompt_id"].string, let kind = Kind(rawValue: j["kind"].string ?? ""),
+              let generation = j["execution_generation"].int else { return nil }
+        var choices = j["choices"].array.compactMap(\.string)
+        if kind == .approval {
+            choices = Self.watchChoices.filter(choices.contains)
+            if choices.isEmpty { choices = ["deny"] }
+        }
+        self.init(id: id, kind: kind, generation: generation, command: j["command"].string ?? "", description: j["description"].string ?? "",
+                  question: j["question"].string ?? "", choices: choices, multiSelect: j["multi_select"].bool ?? false)
+    }
+}

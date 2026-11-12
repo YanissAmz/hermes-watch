@@ -141,6 +141,20 @@ final class AppModel: ObservableObject {
         try? await client?.interrupt(sessionID: session.id)
     }
 
+    /// The wearer's answer to a question from the dashboard. The card leaves at once; on failure it comes back with the error.
+    func answer(_ request: OpenRequest, with text: String, in session: SessionRow) async {
+        guard let client, followedID == session.id else { return }
+        chat.answered(request.id)
+        do {
+            try await client.answer(sessionID: session.id, request: request, with: text)
+        } catch BridgeError.rpc("Already answered") {
+            // Answered on another device, or timed out: nothing is waiting any more.
+        } catch {
+            if followedID == session.id, !chat.requests.contains(request) { chat.requests.insert(request, at: 0) }
+            chatError = L(error.localizedDescription)
+        }
+    }
+
     func pick(model: String, provider: ProviderOption, in session: SessionRow) async {
         guard let client else { return }
         do {

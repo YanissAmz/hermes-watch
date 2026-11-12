@@ -1,7 +1,8 @@
 # Hermes Watch
 
 An Apple Watch app for [Hermes Agent](https://github.com/NousResearch/hermes-agent): read your conversations, start a
-new one, dictate or type a message, watch the reply stream in, stop a turn, and pick the model, all from the wrist.
+new one, dictate or type a message, watch the reply stream in, stop a turn, pick the model, and answer Hermes when it
+asks for an approval or a clarification, all from the wrist.
 
 Unofficial community project. Not affiliated with Nous Research.
 
@@ -32,7 +33,10 @@ Apple Watch  --HTTPS-->  watch_bridge.py  --WebSocket-->  Hermes dashboard
 The bridge is one Python file (`bridge/watch_bridge.py`, about 200 lines, FastAPI). It:
 
 - forwards only the calls the app needs (list, create, resume, history, submit, interrupt, model options, model
-  switch for one conversation); anything else is refused, so nothing can be deleted or reconfigured from the wrist;
+  switch for one conversation, answers to approvals and clarifications); anything else is refused, so nothing can be
+  deleted or reconfigured from the wrist;
+- lets an approval be answered with once, for this conversation, or deny; "always" (a permanent allow-list entry) is
+  refused and left to a bigger screen;
 - asks for the same bearer token as the dashboard;
 - listens on loopback only; you put your own HTTPS address in front of it;
 - changes nothing in Hermes.
@@ -86,6 +90,7 @@ builds for the simulator, runs one real turn through a bridge on `127.0.0.1:9120
 ```sh
 cd HermesCore && swift test                                   # state reducer, no network
 HERMES_TOKEN=... python bridge/test_bridge.py                 # end to end against a running bridge and a real model turn
+python bridge/test_approvals.py                               # approvals and clarifications, against a stand-in dashboard
 ```
 
 The bridge test checks that a missing token and forbidden methods are refused, then lists, creates, switches the
@@ -97,14 +102,14 @@ model for one conversation, submits, follows events to the end of the reply, and
 |---|---|
 | `App/` | SwiftUI watch app (XcodeGen project). English, with French. |
 | `HermesCore/` | Swift package: JSON, models, the chat state reducer, the bridge client. |
-| `bridge/` | The HTTP bridge and its end-to-end test. |
+| `bridge/` | The HTTP bridge and its tests. |
 | `scripts/` | Install on a real watch; simulator demo. |
 
 ## Limits
 
 - Text only: no images, no voice replies, no attachments.
 - No notification when a reply finishes while the app is closed.
-- Tool approvals are not handled: answer them from another client.
+- A clarification with several possible answers is answered from another client.
 - A model that asks for a confirmation has to be picked from the desktop or phone app.
 - The picker lists what your Hermes config offers. When the picked provider refuses a request (a model id it does not
   know, a free model at its rate limit), Hermes answers with its fallback model and says so at the end of the reply.

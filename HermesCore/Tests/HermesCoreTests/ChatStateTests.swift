@@ -67,6 +67,41 @@ final class ChatStateTests: XCTestCase {
         XCTAssertFalse(s.streaming)
     }
 
+    private func approval(_ seq: Int, _ id: String, generation: Int = 1) -> BridgeEvent {
+        BridgeEvent(seq: seq, type: "approval.request", payload: .object([
+            "kind": "approval", "prompt_id": .string(id), "execution_generation": .number(Double(generation)), "command": "rm -rf build",
+            "description": "recursive delete", "choices": .array(["once", "deny", "session", "always"])]))
+    }
+
+    func testAnApprovalShowsUntilItIsSettled() {
+        var s = ChatState()
+        s.apply(BridgeEvent(seq: 1, type: "message.start"))
+        s.apply(approval(2, "p1", generation: 3))
+        s.apply(approval(3, "p1", generation: 3))      // delivered twice: still one card
+        XCTAssertEqual(s.requests.map(\.id), ["p1"])
+        XCTAssertEqual(s.requests[0].kind, .approval); XCTAssertEqual(s.requests[0].generation, 3)
+        XCTAssertEqual(s.requests[0].command, "rm -rf build")
+        XCTAssertEqual(s.requests[0].choices, ["once", "session", "deny"])   // "always" never offered on the wrist
+        s.apply(BridgeEvent(seq: 4, type: "clarify.request", payload: .object([
+            "kind": "clarify", "prompt_id": "c1", "execution_generation": 3, "question": "Which branch?",
+            "choices": .array(["main", "dev"]), "multi_select": false])))
+        s.apply(BridgeEvent(seq: 5, type: "approval.settled", payload: .object(["prompt_id": "p1", "execution_generation": 3])))
+        XCTAssertEqual(s.requests.map(\.id), ["c1"]); XCTAssertEqual(s.requests[0].question, "Which branch?")
+        XCTAssertEqual(s.requests[0].choices, ["main", "dev"])
+        s.answered("c1")
+        XCTAssertTrue(s.requests.isEmpty)
+        s.apply(approval(6, "p2"))
+        s.apply(BridgeEvent(seq: 7, type: "message.complete", payload: .object(["text": "done", "outcome": "completed"])))
+        XCTAssertTrue(s.requests.isEmpty)               // a finished turn has no question left
+    }
+
+    func testReopeningShowsOnlyTheRunningTurnsApproval() {
+        var s = ChatState()
+        s.resume(from: [approval(1, "old"), BridgeEvent(seq: 2, type: "message.complete", payload: .object(["outcome": "completed"])),
+                        BridgeEvent(seq: 3, type: "message.start"), approval(4, "now")])
+        XCTAssertEqual(s.requests.map(\.id), ["now"])
+    }
+
     func testSessionRowsReadTheGatewayShape() throws {
         let j = try JSONDecoder().decode(JSON.self, from: Data(#"{"session_id":"abc","id":"abc","title":" Life ","started_at":1793880294.03,"message_count":293,"model":"m","running":true}"#.utf8))
         let r = try XCTUnwrap(SessionRow(j))

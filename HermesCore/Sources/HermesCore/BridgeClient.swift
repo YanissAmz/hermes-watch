@@ -141,6 +141,18 @@ public final class BridgeClient: @unchecked Sendable {
                             providers: providers)
     }
 
+    /// Answers a question from the dashboard: an approval choice (`once`, `session`, `deny`) or a clarify answer.
+    public func answer(sessionID: String, request: OpenRequest, with text: String) async throws {
+        var p: [String: JSON] = ["session_id": .string(sessionID), "execution_generation": .number(Double(request.generation)),
+                                 "prompt_id": .string(request.id)]
+        switch request.kind {
+        case .approval: p["choice"] = .string(text)
+        case .clarify: p["answer"] = .string(text)
+        }
+        let r = try await rpc(request.kind == .approval ? "approval.respond" : "clarify.respond", p)
+        if r["status"].string == "already_resolved" { throw BridgeError.rpc("Already answered") }
+    }
+
     /// Changes the model of this conversation only (`session.mutate`); the default model is not touched.
     public func setModel(sessionID: String, model: String, provider: String) async throws {
         let f = try await fence(sessionID)
