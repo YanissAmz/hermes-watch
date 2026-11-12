@@ -47,12 +47,15 @@ struct SessionsView: View {
 
 #if DEBUG
 extension SessionsView {
-    /// Simulator runs only: HERMES_DEMO_PROMPT opens a new conversation and sends that text through the normal code path,
-    /// so a screenshot can show a real turn without driving the watch keyboard.
+    /// Demo runs: HERMES_DEMO_PROMPT opens a new conversation and sends that text through the normal code path,
+    /// so a screenshot or a video can show a real turn without driving the watch keyboard.
+    /// HERMES_DEMO_DELAY (seconds) leaves the conversation list on screen first.
     fileprivate func runDemoIfAsked() {
         guard let prompt = ProcessInfo.processInfo.environment["HERMES_DEMO_PROMPT"], path.isEmpty, !Self.demoStarted else { return }
         Self.demoStarted = true
+        let delay = Double(ProcessInfo.processInfo.environment["HERMES_DEMO_DELAY"] ?? "") ?? 0
         Task {      // not tied to this screen: it is covered as soon as the conversation opens
+            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
             guard let row = await model.newSession() else { return }
             path = [row]
             try? await Task.sleep(for: .seconds(3))
