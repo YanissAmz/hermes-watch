@@ -1,0 +1,10 @@
+Local.xcconfig
+*.xcodeproj
+build/
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+__pycache__/
+*.log
+.DS_Store

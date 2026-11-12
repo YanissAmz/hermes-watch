@@ -1,0 +1,41 @@
+name: HermesWatch
+options:
+  deploymentTarget:
+    watchOS: "10.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+configFiles:
+  Debug: Config.xcconfig
+  Release: Config.xcconfig
+packages:
+  HermesCore:
+    path: ../HermesCore
+targets:
+  HermesWatch:
+    type: application
+    platform: watchOS
+    sources: [Sources]
+    dependencies:
+      - package: HermesCore
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Hermes
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleLocalizations: [en, fr]
+        WKApplication: true
+        WKWatchOnly: true
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        HermesBridgeURL: $(HERMES_BRIDGE_URL)
+        HermesBridgeToken: $(HERMES_BRIDGE_TOKEN)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HERMES_BUNDLE_ID)
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "4"
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic

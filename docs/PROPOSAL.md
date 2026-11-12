@@ -1,0 +1,62 @@
+# Proposal: an HTTP path for clients that cannot open a WebSocket
+
+Draft of an issue for NousResearch/hermes-agent.
+
+## The problem
+
+The dashboard accepts prompts and streams replies only over the JSON-RPC WebSocket at `/api/ws`. One class of client
+cannot use it: an Apple Watch app.
+
+Apple's [TN3135](https://developer.apple.com/documentation/technotes/tn3135-low-level-networking-on-watchos) splits
+watchOS networking in two. HTTP and HTTPS through `URLSession` are open to every app. Everything that runs a
+connection directly, `URLSessionWebSocketTask` included (revision of 2021-05-14), is low-level networking, and
+watchOS blocks it unless the app is streaming audio, running a CallKit call, or pairing with a tvOS app. The note adds
+that the simulator always allows it, so a watch client built on the WebSocket looks fine until it meets a real watch.
+
+Other constrained clients are in the same position for different reasons: shortcuts and automations, widgets, and
+environments where only request/response HTTP gets through a proxy.
+
+## What works today
+
+[Hermes Watch](../README.md) puts a small bridge in front of the dashboard. The watch only does:
+
+```
+POST /rpc     {"method": "...", "params": {...}}                 -> {"result": ...} | {"error": ...}
+GET  /events  ?session_id=...&after=<seq>&wait=<seconds>         -> {"events": [{seq, type, payload}], "last": <seq>}
+```
+
+- `/rpc` forwards one JSON-RPC call over a WebSocket the bridge keeps open, and returns its result.
+- `/events` is a long poll. The bridge numbers the events of each session as they arrive, keeps a bounded buffer, and
+  answers with everything after the client's last sequence number, or waits up to `wait` seconds. A client that was
+  away asks again with its last number and misses nothing that is still in the buffer.
+- Both ask for the dashboard's bearer token.
+
+The app is installed on a real Apple Watch Series 11 (watchOS 27) and its calls reach the dashboard through the
+paired iPhone. The whole flow (conversation list, new conversation, send, streamed reply, interrupt, model switch for
+one conversation) is exercised in the watch simulator and by the bridge's end-to-end test.
+
+One run of that test, for scale: a one-word reply produced 18 events, delivered in 2 polls; a long turn that was
+interrupted ended as cancelled about 2 seconds after it was submitted. The bridge waits 250 ms before answering a poll
+so that a burst of deltas travels in one response.
+
+## The proposal
+
+Serve the same two endpoints from the dashboard itself, next to `/api/ws`, behind the same authentication:
+
+- `POST /api/rpc`: one JSON-RPC request in, one response out, same methods and same errors as the WebSocket.
+- `GET /api/events`: long poll of a session's events by sequence number.
+
+What it takes on the server: a per-session sequence number and a bounded replay buffer for events (the WebSocket path
+can keep ignoring both), and the long-poll handler. No change to the protocol's methods or payloads.
+
+What it gives: a watch app, or any HTTP-only client, talks to a stock Hermes with nothing extra to run.
+
+## Open questions
+
+- Should the HTTP path expose every method, or a reduced set? The bridge allows only what a small client needs and
+  refuses the rest (delete, config changes), which felt right for a device that is easy to lose.
+- Server-sent events would stream better than a long poll and are plain HTTP, so watchOS allows them in principle.
+  I have not tried them on a watch. The long poll was the safe choice: it is one ordinary request at a time.
+- Approvals and other server-initiated requests need a place in this path. The bridge does not handle them yet.
+
+I can turn the bridge into a pull request against the dashboard if this direction suits you.

@@ -1,0 +1,5 @@
+// Defaults that work in the simulator. Put your own values in Local.xcconfig (not tracked): see Local.xcconfig.example.
+HERMES_BUNDLE_ID = com.example.hermeswatch
+HERMES_BRIDGE_URL =
+HERMES_BRIDGE_TOKEN =
+#include? "Local.xcconfig"

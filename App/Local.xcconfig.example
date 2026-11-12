@@ -1,0 +1,9 @@
+// Copy to Local.xcconfig and fill in. This file is never committed.
+// Needed for a real watch: your Apple team id and a bundle id that is yours.
+DEVELOPMENT_TEAM = ABCDE12345
+HERMES_BUNDLE_ID = com.yourname.hermeswatch
+
+// Optional: prefill the bridge address and token so nothing has to be typed on the watch.
+// xcconfig reads // as a comment, hence the $() between the slashes.
+HERMES_BRIDGE_URL = https:/$()/my-host.example:8444
+HERMES_BRIDGE_TOKEN = change-me
