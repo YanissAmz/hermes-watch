@@ -25,6 +25,11 @@ IDLE_DROP = 6 * 3600  # forget a session's buffer after this long without traffi
 COALESCE = 0.25      # seconds to let a few more events arrive before answering a poll
 
 
+def note(*parts):
+    """One diagnostic line: which call, for which conversation (first characters of its id). Never a text or a token."""
+    print(time.strftime("%H:%M:%S"), " ", *parts, flush=True)
+
+
 class Upstream:
     def __init__(self):
         self.ws = None
@@ -157,6 +162,7 @@ async def health():
 @app.post("/rpc")
 async def rpc(body: Rpc, authorization: str = Header(default="")):
     check(authorization)
+    note("rpc", body.method, str(body.params.get("session_id") or "")[:14], str(body.params.get("operation") or ""))
     if body.method not in ALLOWED:
         raise HTTPException(400, f"method not allowed: {body.method}")
     if body.method == "session.mutate" and body.params.get("operation") != "model":
@@ -189,6 +195,7 @@ async def events(session_id: str, after: int = 0, wait: float = Query(default=20
     except Exception as e:  # dashboard down, refused, slow: one clear answer for the watch
         raise HTTPException(502, f"dashboard unreachable: {type(e).__name__}")
     ev = await up.events(session_id, after, wait)
+    note("events", session_id[:14], f"after={after}", f"sent={len(ev)}")
     return {"events": ev, "last": ev[-1]["seq"] if ev else after}
 
 

@@ -55,7 +55,9 @@ struct ChatView: View {
             }
         }
         .sheet(isPresented: $showModels) { ModelPickerView(session: session) }
-        .task(id: session.id) { await model.follow(session) }
+        .onAppear { model.open(session) }
+        .onChange(of: session.id) { _, _ in model.open(session) }
+        .onDisappear { model.close(session) }
         #if DEBUG
         .task {
             if let delay = ProcessInfo.processInfo.environment["HERMES_DEMO_MODELS_AFTER"].flatMap(Double.init) {

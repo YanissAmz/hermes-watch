@@ -14,6 +14,7 @@ struct SessionsView: View {
                 } label: {
                     Label("New conversation", systemImage: "square.and.pencil")
                 }
+                .disabled(model.creating)
                 .accessibilityIdentifier("new-chat")
 
                 if let error = model.listError {
@@ -27,7 +28,7 @@ struct SessionsView: View {
                 }
             }
             .navigationTitle("Hermes")
-            .navigationDestination(for: SessionRow.self) { ChatView(session: $0) }
+            .navigationDestination(for: SessionRow.self) { ChatView(session: $0).id($0.id) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }

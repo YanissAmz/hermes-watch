@@ -120,6 +120,11 @@ public final class BridgeClient: @unchecked Sendable {
         return (snap["revision"], snap["execution_generation"])
     }
 
+    /// Whether a turn is running in this conversation right now.
+    public func isRunning(sessionID: String) async throws -> Bool {
+        try await rpc("session.resume", ["session_id": .string(sessionID)])["running"].bool ?? false
+    }
+
     public func interrupt(sessionID: String) async throws {
         let f = try await fence(sessionID)
         _ = try await rpc("session.interrupt", ["session_id": .string(sessionID), "execution_generation": f.generation])
