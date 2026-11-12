@@ -18,6 +18,9 @@ The Hermes dashboard takes prompts over a WebSocket (`/api/ws`). An ordinary wat
 they stream or run a call. The same note warns that the simulator always allows it, so the problem only shows on a
 real watch. Plain HTTP and HTTPS through `URLSession` are open to every app.
 
+Measured with this app: in the simulator the dashboard WebSocket opens in 0.1 s; on a real Series 11 the same build
+fails after 0.2 s with `NSURLErrorDomain -1009`, while its HTTPS calls go through.
+
 So the watch speaks plain HTTP to a small bridge that keeps one WebSocket to the dashboard:
 
 ```

@@ -13,6 +13,17 @@ connection directly, `URLSessionWebSocketTask` included (revision of 2021-05-14)
 watchOS blocks it unless the app is streaming audio, running a CallKit call, or pairing with a tvOS app. The note adds
 that the simulator always allows it, so a watch client built on the WebSocket looks fine until it meets a real watch.
 
+Checked on hardware (Apple Watch Series 11, watchOS 27.0.1, 12 Nov 2026), with a debug probe in the app that opens the
+dashboard WebSocket with `URLSessionWebSocketTask` and sends a ping:
+
+| Where | Result |
+|---|---|
+| watchOS simulator | opened and answered the ping in 0.1 s |
+| real watch, same build, same address | failed after 0.2 s: `NSURLErrorDomain -1009` (not connected to the internet) |
+
+In the same launch on the real watch, the app's HTTPS calls to the bridge went through (HTTP 200). The watch was
+online; only the WebSocket was refused. Reproduce with `HERMES_WS_PROBE=wss://...` (see `App/Sources/HermesWatchApp.swift`).
+
 Other constrained clients are in the same position for different reasons: shortcuts and automations, widgets, and
 environments where only request/response HTTP gets through a proxy.
 
