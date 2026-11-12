@@ -8,6 +8,8 @@ public struct ChatState: Equatable, Sendable {
     /// The assistant's reply while it is being written.
     public var draft = ""
     public var status: String?
+    /// Questions from the dashboard still waiting for an answer, oldest first.
+    public var requests: [OpenRequest] = []
     /// Highest bridge sequence number folded in; the next poll asks for events after it.
     public var lastSeq = 0
     private var segments: [Int: String] = [:]
@@ -24,10 +26,14 @@ public struct ChatState: Equatable, Sendable {
     /// the rest just moves the cursor.
     public mutating func resume(from backlog: [BridgeEvent]) {
         let done = backlog.lastIndex { $0.type == "message.complete" }
+        requests = []
         for (i, e) in backlog.enumerated() {
             if let done, i <= done { lastSeq = max(lastSeq, e.seq) } else { apply(e) }
         }
     }
+
+    /// The wearer answered a request: it leaves the screen at once, the dashboard's `*.settled` follows.
+    public mutating func answered(_ id: String) { requests.removeAll { $0.id == id } }
 
     public mutating func apply(_ e: BridgeEvent) {
         lastSeq = max(lastSeq, e.seq)
@@ -48,10 +54,14 @@ public struct ChatState: Equatable, Sendable {
             draft = segments.keys.sorted().compactMap { segments[$0] }.joined(separator: "\n\n")
         case "status.update":
             status = e.payload["text"].string
+        case "approval.request", "clarify.request":
+            if let r = OpenRequest(e.payload), !requests.contains(where: { $0.id == r.id }) { requests.append(r) }
+        case "approval.settled", "clarify.settled":
+            if let id = e.payload["prompt_id"].string { requests.removeAll { $0.id == id } }
         case "message.complete":
             let final = e.payload["text"].string ?? draft
             if !final.isEmpty { messages.append(ChatMessage(role: .assistant, text: final)) }
-            streaming = false; thinking = false; draft = ""; segments = [:]
+            streaming = false; thinking = false; draft = ""; segments = [:]; requests = []
             if let outcome = e.payload["outcome"].string, outcome != "completed" { status = outcome }
         default:
             if e.type.hasPrefix("tool.") {

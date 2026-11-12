@@ -19,6 +19,7 @@ struct ChatView: View {
                     if !model.chat.draft.isEmpty {
                         Bubble(message: ChatMessage(id: "draft", role: .assistant, text: model.chat.draft)).id("draft")
                     }
+                    ForEach(model.chat.requests) { RequestCard(request: $0, session: session).id($0.id) }
                     if model.chat.streaming {
                         HStack(spacing: 6) {
                             ProgressView().controlSize(.small)
@@ -56,6 +57,7 @@ struct ChatView: View {
             }
             .onChange(of: model.chat.draft.isEmpty) { _, empty in if !empty { scroll(proxy, to: "draft", anchor: .top) } }
             .onChange(of: model.loadingChat) { _, _ in scroll(proxy) }
+            .onChange(of: model.chat.requests.first?.id) { _, id in if let id { scroll(proxy, to: id, anchor: .top) } }
         }
         .navigationTitle(session.title)
         .toolbar {

@@ -19,7 +19,11 @@ from pydantic import BaseModel
 UPSTREAM = os.environ.get("HERMES_WS", "")
 TOKEN = os.environ.get("HERMES_TOKEN", "")
 ALLOWED = {"session.list", "session.create", "session.resume", "session.history", "session.interrupt", "session.most_recent",
-           "prompt.submit", "model.options", "session.mutate"}
+           "prompt.submit", "model.options", "session.mutate", "approval.respond", "clarify.respond"}
+# Answers a wearer may give to the dashboard's questions (events approval.request / clarify.request).
+# "always" stays on a bigger screen: a permanent allow-list entry is not a decision for a wrist.
+WATCH_CHOICES = {"once", "session", "deny"}
+MAX_ANSWER = 2000
 KEEP = 4000          # events kept per session
 IDLE_DROP = 6 * 3600  # forget a session's buffer after this long without traffic
 COALESCE = 0.25      # seconds to let a few more events arrive before answering a poll
@@ -167,9 +171,14 @@ async def rpc(body: Rpc, authorization: str = Header(default="")):
         raise HTTPException(400, f"method not allowed: {body.method}")
     if body.method == "session.mutate" and body.params.get("operation") != "model":
         raise HTTPException(400, "session.mutate is limited to the model operation")   # no delete, rewind or reset from the wrist
+    if body.method == "approval.respond" and body.params.get("choice") not in WATCH_CHOICES:
+        raise HTTPException(400, "approval choice must be once, session or deny")
+    if body.method == "clarify.respond" and not (isinstance(body.params.get("answer"), str) and len(body.params["answer"]) <= MAX_ANSWER):
+        raise HTTPException(400, "clarify answer must be a short text")
     try:
         sid = body.params.get("session_id")
-        if body.method in ("prompt.submit", "session.history", "session.mutate", "session.interrupt") and sid:
+        if body.method in ("prompt.submit", "session.history", "session.mutate", "session.interrupt",
+                           "approval.respond", "clarify.respond") and sid:
             await up.subscribe(sid)
         f = await up.call(body.method, body.params)
         if body.method in ("session.create", "session.resume") and "result" in f:

@@ -231,6 +231,76 @@
           }
         }
       }
+    },
+    "Approval needed": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validation demandée"
+          }
+        }
+      }
+    },
+    "Allow once": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser une fois"
+          }
+        }
+      }
+    },
+    "Allow for this conversation": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser pour cette conversation"
+          }
+        }
+      }
+    },
+    "Deny": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refuser"
+          }
+        }
+      }
+    },
+    "Hermes is asking": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes demande"
+          }
+        }
+      }
+    },
+    "Several answers are possible: answer in the phone or desktop app.": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plusieurs réponses possibles : réponds dans l’app iPhone ou desktop."
+          }
+        }
+      }
+    },
+    "Answer": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réponse"
+          }
+        }
+      }
     }
   }
 }
