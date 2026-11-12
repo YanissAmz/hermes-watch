@@ -42,9 +42,11 @@ GET  /events  ?session_id=...&after=<seq>&wait=<seconds>         -> {"events": [
   away asks again with its last number and misses nothing that is still in the buffer.
 - Both ask for the dashboard's bearer token.
 
-The app is installed on a real Apple Watch Series 11 (watchOS 27) and its calls reach the dashboard through the
-paired iPhone. The whole flow (conversation list, new conversation, send, streamed reply, interrupt, model switch for
-one conversation) is exercised in the watch simulator and by the bridge's end-to-end test.
+The app runs on a real Apple Watch Series 11 (watchOS 27.0.1); its calls reach the dashboard through the paired
+iPhone. Done on the watch itself: conversation list, new conversation, a dictated message, and the reply shown on the
+screen (one turn: 63 events in 5 polls, about 4 seconds from send to the end of the reply). Interrupt and the model
+switch for one conversation are exercised in the watch simulator and by the bridge's end-to-end test, not yet on the
+watch.
 
 One run of that test, for scale: a one-word reply produced 18 events, delivered in 2 polls; a long turn that was
 interrupted ended as cancelled about 2 seconds after it was submitted. The bridge waits 250 ms before answering a poll
