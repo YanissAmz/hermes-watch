@@ -70,8 +70,9 @@ What it gives: a watch app, or any HTTP-only client, talks to a stock Hermes wit
   refuses the rest (delete, config changes), which felt right for a device that is easy to lose.
 - Server-sent events would stream better than a long poll and are plain HTTP, so watchOS allows them in principle.
   I have not tried them on a watch. The long poll was the safe choice: it is one ordinary request at a time.
-- Approvals and clarifications already fit this path: they arrive as events (`approval.request`, `clarify.request`) and
-  are answered with a method (`approval.respond`, `clarify.respond`), so the long poll carries them unchanged. The
-  bridge only narrows the choices a watch may give: once, for this conversation, or deny, never "always".
+- Approvals and clarifications seem to fit this path already: on the dashboard I tested, they arrive as events
+  (`approval.request`, `clarify.request`) and are answered with a method (`approval.respond`, `clarify.respond`), so the
+  long poll carries them unchanged. The bridge only narrows the choices a watch may give: once, for this conversation,
+  or deny, never "always".
 
 I can turn the bridge into a pull request against the dashboard if this direction suits you.
